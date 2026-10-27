@@ -1,82 +1,123 @@
 # NexaTech — Business Portfolio Website
 
-A responsive business portfolio website built to showcase a company's services, projects, and contact information. The project includes an admin panel that allows authorized users to manage website content dynamically.
+A responsive, database-driven business portfolio website built with PHP and MySQL. NexaTech helps businesses present their services, projects, and company information through a professional website, with an admin panel for managing supported content.
 
 ## Project Overview
 
-NexaTech is a business portfolio website developed as part of my web development training. It demonstrates my practical experience in building dynamic websites, integrating a MySQL database, and implementing content management features using PHP.
+NexaTech was developed as part of my web development training at Violet Programming. The project demonstrates my practical experience in building dynamic PHP websites, integrating relational databases, and implementing content management functionality.
 
-## Features
+The website separates the public-facing experience from the administration interface, allowing visitors to explore business information while authorized users manage website content.
+
+## Key Features
 
 ### Public Website
-- Responsive design for different screen sizes.
+
+- Responsive layout for different screen sizes.
 - Home and About sections.
 - Dynamic Services section.
-- Portfolio section with project categories and filtering.
+- Portfolio gallery with project categories and filtering.
 - Frequently Asked Questions (FAQ) section.
-- Contact section with editable company information.
+- Contact section displaying company information.
 
 ### Admin Panel
+
 - Admin login and logout.
-- Dashboard for managing website content.
+- Dashboard for website content management.
 - Create, edit, and delete portfolio projects.
 - Manage website sections and services.
 - Manage frequently asked questions.
 - Activate and deactivate supported content.
 - Update company contact information.
-- Store and retrieve content using MySQL.
+- Store and retrieve website content through MySQL.
+
+## My Contribution
+
+I developed the website using PHP, HTML, CSS, JavaScript, and MySQL. My work included:
+
+- Building and styling the public website interface.
+- Connecting dynamic website sections and services to database records.
+- Implementing portfolio filtering and navigation.
+- Developing administrative content management functionality.
+- Organizing project files and troubleshooting database and layout issues.
 
 ## Technologies Used
 
 - **Frontend:** HTML5, CSS3, JavaScript
 - **Backend:** PHP
-- **Database:** MySQL
-- **Local Development:** XAMPP and Apache
+- **Database:** MySQL, SQL
 - **Database Management:** phpMyAdmin
-- **Version Control:** Git and GitHub
+- **Local Development:** XAMPP, Apache
+- **Version Control:** Git, GitHub
+
+## Project Structure
+
+```text
+business-portfolio/
+├── admin/
+├── assets/
+│   ├── css/
+│   └── images/
+├── includes/
+│   └── db.php
+├── index.php
+├── business_portfolio_db.sql
+├── .gitignore
+└── README.md
+```
+
+*The structure above summarizes the main project files and directories.*
 
 ## Installation and Setup
+
+### Prerequisites
+
+- XAMPP with PHP and MySQL.
+- Apache and MySQL services.
+- phpMyAdmin.
+
+### Steps
 
 1. Install [XAMPP](https://www.apachefriends.org/).
 2. Clone or download this repository into your XAMPP `htdocs` directory.
 3. Start Apache and MySQL from the XAMPP Control Panel.
 4. Open phpMyAdmin at `http://localhost/phpmyadmin`.
 5. Create a database named `business_portfolio_db`.
-6. Import `business_portfolio_db.sql` into the database.
-7. Configure your local database connection in `includes/db.php`. This file is excluded from the public repository, so create or configure it locally if needed.
+6. Import the `business_portfolio_db.sql` file.
+7. Configure your local database connection in `includes/db.php`. If the file is excluded from the repository, create it locally using your own database credentials.
 8. Open the website at `http://localhost/business-portfolio/`.
 
-## Project Structure
+**Security note:** Do not commit database passwords or other private credentials to a public repository.
 
-```text
-business-portfolio/
-├── admin/                  # Admin panel and content management
-├── assets/
-│   ├── css/                # Stylesheets
-│   └── images/             # Project images
-├── includes/               # Database connection configuration
-├── index.php               # Public website
-├── business_portfolio_db.sql
-├── .gitignore
-└── README.md
-```
+## Screenshots
+
+Screenshots of the public website and admin panel can be added here to demonstrate the interface and content management features.
 
 ## What I Learned
 
-- Building dynamic websites using PHP and MySQL.
-- Connecting PHP applications to a relational database.
+- Building dynamic web applications with PHP and MySQL.
+- Integrating PHP pages with a relational database.
 - Implementing CRUD operations for website content.
-- Managing project images and database records.
-- Organizing project files and using Git and GitHub.
-- Testing and debugging a local web application with XAMPP.
+- Managing dynamic sections, services, and portfolio records.
+- Creating responsive layouts and interactive portfolio filtering.
+- Organizing code and debugging a local application with XAMPP.
+- Using Git and GitHub for version control.
 
 ## Developer
 
 **Sally Kadi**
 
-- GitHub: [sally-kadi](https://github.com/sally-kadi)
-- LinkedIn: [Sally Kadi](https://www.linkedin.com/in/sally-kadi/)
+- **GitHub:** [sally-kadi](https://github.com/sally-kadi)
+- **LinkedIn:** [Sally Kadi](https://www.linkedin.com/in/sally-kadi/)
+- **Email:** [Contact Me](mailto:sallykadi888@gmail.com)
+
+## Related Portfolio
+
+Explore my other projects and development experience through my personal portfolio.
+
+[Personal GitHub Profile](https://github.com/sally-kadi)
 
 ---
 
 *Developed as a web development training project.*
+
+© 2026 Sally Kadi

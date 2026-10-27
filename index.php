@@ -1,33 +1,93 @@
 
 <?php
-require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . "/includes/db.php";
 
 function e($value) {
-    return htmlspecialchars((string)($value ?? ''), ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(
+        (string)($value ?? ""),
+        ENT_QUOTES,
+        "UTF-8"
+    );
+}
+
+// Resolve portfolio image paths
+function portfolioImage($path) {
+    $path = trim((string)($path ?? ""));
+
+    if ($path === "") {
+        return "";
+    }
+
+    // Allow existing full image URLs
+    if (preg_match('~^https?://~i', $path)) {
+        return $path;
+    }
+
+    // Reject unsupported URL schemes
+    if (preg_match('~^[a-z][a-z0-9+.-]*:~i', $path)) {
+        return "";
+    }
+
+    $path = str_replace("\\", "/", $path);
+
+    // Remove query strings and fragments from local paths
+    $path = explode("?", $path, 2)[0];
+    $path = explode("#", $path, 2)[0];
+
+    // Normalize common project-relative paths
+    $path = ltrim($path, "/");
+
+    if (str_starts_with($path, "business-portfolio/")) {
+        $path = substr(
+            $path,
+            strlen("business-portfolio/")
+        );
+    }
+
+    // Prevent directory traversal
+    if (
+        $path === "" ||
+        in_array("..", explode("/", $path), true)
+    ) {
+        return "";
+    }
+
+    return $path;
 }
 
 // Company information
 $company = [];
-$result = $conn->query("SELECT * FROM company_info LIMIT 1");
+
+$result = $conn->query(
+    "SELECT * FROM company_info LIMIT 1"
+);
 
 if ($result && $result->num_rows > 0) {
     $company = $result->fetch_assoc();
 }
 
-// Website sections
+// Active sections
 $sections = [];
-$result = $conn->query("SELECT * FROM sections WHERE status = 1 ORDER BY id ASC");
+
+$result = $conn->query(
+    "SELECT * FROM sections
+     WHERE status = 1
+     ORDER BY id ASC"
+);
 
 if ($result) {
     while ($row = $result->fetch_assoc()) {
-        $sections[$row['section_key']] = $row;
+        $sections[$row["section_key"]] = $row;
     }
 }
 
-// Services
+// Active services
 $services = [];
+
 $result = $conn->query(
-    "SELECT * FROM services WHERE status = 1 ORDER BY sort_order ASC, id ASC"
+    "SELECT * FROM services
+     WHERE status = 1
+     ORDER BY sort_order ASC, id ASC"
 );
 
 if ($result) {
@@ -36,51 +96,52 @@ if ($result) {
     }
 }
 
-// Portfolio projects from database
+// Portfolio projects
 $portfolio = [];
-$portfolioTableExists = $conn->query("SHOW TABLES LIKE 'portfolio_items'");
 
-if ($portfolioTableExists && $portfolioTableExists->num_rows > 0) {
-    $result = $conn->query(
-        "SELECT * FROM portfolio_items WHERE status = 1 ORDER BY sort_order ASC, id ASC"
-    );
+$result = $conn->query(
+    "SELECT * FROM portfolio_items
+     WHERE status = 1
+     ORDER BY id DESC"
+);
 
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $portfolio[] = $row;
-        }
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $portfolio[] = $row;
     }
 }
 
-// FAQs from database
+// Active FAQs
 $faqs = [];
-$faqTableExists = $conn->query("SHOW TABLES LIKE 'faqs'");
 
-if ($faqTableExists && $faqTableExists->num_rows > 0) {
-    $result = $conn->query(
-        "SELECT * FROM faqs WHERE status = 1 ORDER BY sort_order ASC, id ASC"
-    );
+$result = $conn->query(
+    "SELECT * FROM faqs
+     WHERE status = 1
+     ORDER BY id ASC"
+);
 
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $faqs[] = $row;
-        }
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $faqs[] = $row;
     }
 }
 
-// Section data
-$home = $sections['home'] ?? [];
-$about = $sections['about'] ?? [];
-$servicesSection = $sections['services'] ?? [];
-$contact = $sections['contact'] ?? [];
+// Website sections
+$home = $sections["home"] ?? [];
+$about = $sections["about"] ?? [];
+$servicesSection = $sections["services"] ?? [];
+$contact = $sections["contact"] ?? [];
 
-// Company details
-$companyName = $company['company_name'] ?? 'Violet Programming Company';
-$email = $company['email'] ?? 'info@violetpro.net';
-$phone = $company['phone'] ?? '71 528 881';
-$address = $company['address'] ?? 'Tyre, Lebanon';
+// Branding
+$siteName = "NexaTech";
 
-// Phone link
+// Contact details
+$email = $company["email"] ?? "info@violetpro.net";
+$phone = $company["phone"] ?? "71 528 881";
+
+$address = $company["address"]
+    ?? "Samhat Center, 3rd Floor, Office No. 302, Tyre, Lebanon";
+
 $phoneLink = preg_replace('/\s+/', '', $phone);
 ?>
 
@@ -88,19 +149,34 @@ $phoneLink = preg_replace('/\s+/', '', $phone);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title><?= e($companyName) ?> | Business Portfolio</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <link rel="stylesheet" href="assets/css/style.css">
+    <title>
+        <?= e($siteName) ?> | Business Solutions
+    </title>
+
+    <meta
+        name="description"
+        content="NexaTech provides web development, business systems, applications, and digital solutions."
+    >
+
+    <link
+        rel="stylesheet"
+        href="assets/css/style.css?v=5"
+    >
 </head>
 
 <body>
 
 <!-- NAVIGATION -->
 <header class="navbar">
+
     <a href="#home" class="logo">
-        Violet<span>Programming</span>
+        Nexa<span>Tech</span>
     </a>
 
     <nav>
@@ -118,287 +194,426 @@ $phoneLink = preg_replace('/\s+/', '', $phone);
 
         <a href="#contact">Contact</a>
     </nav>
+
 </header>
 
 <main>
 
-    <!-- HOME -->
-    <section class="hero" id="home">
-        <div class="hero-content">
+<!-- HOME -->
+<section class="hero" id="home">
 
-            <p class="subtitle">
-                <?= e($home['subtitle'] ?? 'We are a team of talented designers making websites with Bootstrap') ?>
-            </p>
+    <div class="hero-content">
 
-            <h1>
-                <?= e($home['title'] ?? 'Better Solutions For Your Business') ?>
-            </h1>
+        <p class="subtitle">
+            <?= e(
+                $home["subtitle"]
+                ?? "Smart Technology. Better Business."
+            ) ?>
+        </p>
+
+        <h1>
+            <?= e(
+                $home["title"]
+                ?? "Better Solutions For Your Business"
+            ) ?>
+        </h1>
+
+        <p class="hero-description">
+            <?= e(
+                $home["description"]
+                ?? "We create modern websites, accounting systems, and applications for businesses."
+            ) ?>
+        </p>
+
+        <a href="#services" class="btn">
+            Get Started
+        </a>
+
+    </div>
+
+    <div class="hero-image">
+
+        <img
+            src="<?= e($home['image'] ?: 'assets/images/banner.png') ?>"
+            alt="NexaTech business technology illustration"
+            class="home-main-image"
+        >
+
+    </div>
+
+</section>
+
+<!-- ABOUT -->
+<section class="section about-section" id="about">
+
+    <div class="section-heading">
+
+        <span class="section-label">
+            ABOUT US
+        </span>
+
+        <h2>
+            <?= e($about["title"] ?? "Who We Are") ?>
+        </h2>
+
+        <p class="section-text">
+            <?= e(
+                $about["description"]
+                ?? "We provide digital solutions to help businesses grow."
+            ) ?>
+        </p>
+
+    </div>
+
+    <div class="about-points">
+
+        <div>
+            <h3>Our Mission</h3>
 
             <p>
-                <?= e($home['description'] ?? 'We create modern websites, accounting systems, and applications for businesses.') ?>
+                To deliver reliable, modern technology solutions
+                that help businesses grow.
             </p>
-
-            <a href="#services" class="btn">Get Started</a>
-
         </div>
-    </section>
 
-    <!-- ABOUT -->
-    <section class="section" id="about">
+        <div>
+            <h3>What We Do</h3>
 
-        <p class="section-label">ABOUT US</p>
+            <p>
+                We develop websites, business systems,
+                applications, and digital marketing solutions.
+            </p>
+        </div>
+
+    </div>
+
+</section>
+
+<!-- SERVICES -->
+<section class="section services" id="services">
+
+    <div class="section-heading">
+
+        <span class="section-label">
+            WHAT WE DO
+        </span>
 
         <h2>
-            <?= e($about['title'] ?? 'Who We Are') ?>
+            <?= e(
+                $servicesSection["title"]
+                ?? "Our Services"
+            ) ?>
         </h2>
 
         <p class="section-text">
-            <?= e($about['description'] ?? 'We provide digital solutions to help businesses grow.') ?>
+            <?= e(
+                $servicesSection["description"]
+                ?? "Discover our technology and digital services."
+            ) ?>
         </p>
 
-    </section>
+    </div>
 
-    <!-- SERVICES -->
-    <section class="section services" id="services">
+    <div class="service-grid">
 
-        <p class="section-label">WHAT WE DO</p>
+        <?php if (!empty($services)): ?>
+
+            <?php foreach ($services as $index => $service): ?>
+
+                <article class="service-card">
+
+                    <div class="service-icon">
+                        <?= sprintf("%02d", $index + 1) ?>
+                    </div>
+
+                    <h3>
+                        <?= e($service["title"] ?? "") ?>
+                    </h3>
+
+                    <p>
+                        <?= e($service["description"] ?? "") ?>
+                    </p>
+
+                </article>
+
+            <?php endforeach; ?>
+
+        <?php else: ?>
+
+            <p>
+                No services available at the moment.
+            </p>
+
+        <?php endif; ?>
+
+    </div>
+
+</section>
+
+<!-- FAQ -->
+<?php if (!empty($faqs)): ?>
+
+<section class="section faq-section" id="faq">
+
+    <div class="section-heading">
+
+        <span class="section-label">
+            FREQUENTLY ASKED QUESTIONS
+        </span>
 
         <h2>
-            <?= e($servicesSection['title'] ?? 'Our Services') ?>
+            Questions? We Have Answers
         </h2>
 
         <p class="section-text">
-            <?= e($servicesSection['description'] ?? 'Discover our services for your business.') ?>
+            Find answers to common questions.
         </p>
 
-        <div class="service-grid">
+    </div>
 
-            <?php if (!empty($services)): ?>
+    <div class="faq-list">
 
-                <?php foreach ($services as $index => $service): ?>
+        <?php foreach ($faqs as $faq): ?>
 
-                    <article class="service-card">
+            <details class="faq-item">
 
-                        <div class="service-icon">
-                            <?= e(['01', '02', '03', '04'][$index % 4]) ?>
-                        </div>
+                <summary>
+                    <?= e($faq["question"] ?? "") ?>
+                </summary>
 
-                        <h3>
-                            <?= e($service['title'] ?? '') ?>
-                        </h3>
+                <p>
+                    <?= e($faq["answer"] ?? "") ?>
+                </p>
 
-                        <p>
-                            <?= e($service['description'] ?? '') ?>
-                        </p>
+            </details>
 
-                    </article>
+        <?php endforeach; ?>
 
-                <?php endforeach; ?>
+    </div>
 
-            <?php else: ?>
+</section>
 
-                <p>No services are available at the moment.</p>
+<?php endif; ?>
 
-            <?php endif; ?>
+<!-- PORTFOLIO -->
+<?php if (!empty($portfolio)): ?>
 
-        </div>
+<section
+    class="section portfolio-section"
+    id="portfolio"
+>
 
-    </section>
+    <div class="section-heading">
 
-    <!-- FAQ -->
-    <?php if (!empty($faqs)): ?>
+        <span class="section-label">
+            OUR WORK
+        </span>
 
-        <section class="section faq-section" id="faq">
+        <h2>Portfolio</h2>
 
-            <p class="section-label">FREQUENTLY ASKED QUESTIONS</p>
+        <p class="section-text">
+            Explore our projects and digital solutions.
+        </p>
 
-            <h2>Questions? We Have Answers</h2>
+    </div>
 
-            <p class="section-text">
-                Find out more about our services and how to contact our team.
-            </p>
+    <!-- Portfolio Filters -->
+    <div class="portfolio-filters">
 
-            <div class="faq-list">
+        <button
+            type="button"
+            class="filter-btn active"
+            data-filter="all"
+        >
+            All
+        </button>
 
-                <?php foreach ($faqs as $index => $faq): ?>
+        <button
+            type="button"
+            class="filter-btn"
+            data-filter="web"
+        >
+            Web
+        </button>
 
-                    <details class="faq-item" <?= $index === 0 ? 'open' : '' ?>>
+        <button
+            type="button"
+            class="filter-btn"
+            data-filter="app"
+        >
+            App
+        </button>
 
-                        <summary>
-                            <?= e($faq['question'] ?? '') ?>
-                        </summary>
+        <button
+            type="button"
+            class="filter-btn"
+            data-filter="marketing"
+        >
+            Marketing
+        </button>
 
-                        <p>
-                            <?= e($faq['answer'] ?? '') ?>
-                        </p>
+    </div>
 
-                    </details>
+    <!-- Portfolio Cards -->
+    <div class="portfolio-grid">
 
-                <?php endforeach; ?>
+        <?php foreach ($portfolio as $item): ?>
 
-            </div>
+            <?php
+            $category = strtolower(
+                trim((string)($item["category"] ?? "web"))
+            );
 
-        </section>
+            $imagePath = portfolioImage(
+                $item["image"] ?? ""
+            );
+            ?>
 
-    <?php endif; ?>
+            <article
+                class="portfolio-card"
+                data-category="<?= e($category) ?>"
+            >
 
-    <!-- PORTFOLIO -->
-    <?php if (!empty($portfolio)): ?>
+                <?php if ($imagePath !== ""): ?>
 
-        <section class="section portfolio-section" id="portfolio">
-
-            <p class="section-label">OUR WORK</p>
-
-            <h2>Portfolio</h2>
-
-            <p class="section-text">
-                Explore our projects and design concepts.
-            </p>
-
-            <div class="portfolio-filters" aria-label="Filter portfolio">
-
-                <button type="button" class="filter-btn active" data-filter="all">
-                    All
-                </button>
-
-                <button type="button" class="filter-btn" data-filter="app">
-                    App
-                </button>
-
-                <button type="button" class="filter-btn" data-filter="card">
-                    Card
-                </button>
-
-                <button type="button" class="filter-btn" data-filter="web">
-                    Web
-                </button>
-
-            </div>
-
-            <div class="portfolio-grid">
-
-                <?php foreach ($portfolio as $item): ?>
-
-                    <?php
-                    $category = strtolower((string)($item['category'] ?? 'web'));
-                    $image = trim((string)($item['image'] ?? ''));
-                    ?>
-
-                    <article
-                        class="portfolio-card"
-                        data-category="<?= e($category) ?>"
+                    <img
+                        src="<?= e($imagePath) ?>"
+                        alt="<?= e($item["title"] ?? "Project") ?>"
+                        loading="lazy"
                     >
 
-                        <?php if ($image !== ''): ?>
+                <?php else: ?>
 
-                            <img
-                                src="<?= e($image) ?>"
-                                alt="<?= e($item['title'] ?? 'Portfolio project') ?>"
-                                loading="lazy"
-                            >
+                    <div class="portfolio-placeholder">
+                        <?= e(strtoupper($category)) ?>
+                    </div>
 
-                        <?php endif; ?>
+                <?php endif; ?>
 
-                        <div class="portfolio-info">
+                <div class="portfolio-info">
 
-                            <h3>
-                                <?= e($item['title'] ?? '') ?>
-                            </h3>
+                    <h3>
+                        <?= e($item["title"] ?? "") ?>
+                    </h3>
 
-                            <p>
-                                <?= e($item['description'] ?? '') ?>
-                            </p>
+                    <?php if (!empty($item["description"])): ?>
 
-                            <span class="portfolio-category">
-                                <?= e(strtoupper($category)) ?>
-                            </span>
+                        <p>
+                            <?= e($item["description"]) ?>
+                        </p>
 
-                        </div>
+                    <?php endif; ?>
 
-                    </article>
+                    <span class="portfolio-category">
+                        <?= e(strtoupper($category)) ?>
+                    </span>
 
-                <?php endforeach; ?>
+                </div>
 
-            </div>
+            </article>
 
-        </section>
+        <?php endforeach; ?>
 
-    <?php endif; ?>
+    </div>
 
-    <!-- CONTACT -->
-    <section class="section" id="contact">
+</section>
 
-        <p class="section-label">GET IN TOUCH</p>
+<?php endif; ?>
+
+<!-- CONTACT -->
+<section
+    class="section contact-section"
+    id="contact"
+>
+
+    <div class="section-heading">
+
+        <span class="section-label">
+            GET IN TOUCH
+        </span>
 
         <h2>
-            <?= e($contact['title'] ?? 'Contact Us') ?>
+            <?= e($contact["title"] ?? "Contact Us") ?>
         </h2>
 
         <p class="section-text">
-            <?= e($contact['description'] ?? 'Contact our team for more information.') ?>
+            <?= e(
+                $contact["description"]
+                ?? "Contact our team to learn more about our services."
+            ) ?>
         </p>
 
-        <div class="contact-card">
+    </div>
 
-            <p>
-                <strong>Company:</strong>
-                <?= e($companyName) ?>
-            </p>
+    <div class="contact-card">
 
-            <p>
-                <strong>Email:</strong>
-                <a href="mailto:<?= e($email) ?>">
-                    <?= e($email) ?>
-                </a>
-            </p>
+        <p>
+            <strong>Company:</strong>
+            <?= e($siteName) ?>
+        </p>
 
-            <p>
-                <strong>Phone:</strong>
-                <a href="tel:<?= e($phoneLink) ?>">
-                    <?= e($phone) ?>
-                </a>
-            </p>
+        <p>
+            <strong>Email:</strong>
 
-            <p>
-                <strong>Address:</strong>
-                <?= e($address) ?>
-            </p>
+            <a href="mailto:<?= e($email) ?>">
+                <?= e($email) ?>
+            </a>
+        </p>
 
-        </div>
+        <p>
+            <strong>Phone:</strong>
 
-    </section>
+            <a href="tel:<?= e($phoneLink) ?>">
+                <?= e($phone) ?>
+            </a>
+        </p>
+
+        <p>
+            <strong>Address:</strong>
+            <?= e($address) ?>
+        </p>
+
+    </div>
+
+</section>
 
 </main>
 
 <!-- FOOTER -->
 <footer>
+
     <p>
-        &copy; <?= date('Y') ?>
-        <?= e($companyName) ?>. All rights reserved.
+        &copy; <?= date("Y") ?>
+        <?= e($siteName) ?>.
+        All rights reserved.
     </p>
+
 </footer>
 
 <!-- PORTFOLIO FILTER -->
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", function () {
 
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const portfolioCards = document.querySelectorAll('.portfolio-card');
+    const buttons = document.querySelectorAll(".filter-btn");
+    const cards = document.querySelectorAll(".portfolio-card");
 
-    filterButtons.forEach(function (button) {
+    buttons.forEach(function (button) {
 
-        button.addEventListener('click', function () {
+        button.addEventListener("click", function () {
 
             const filter = button.dataset.filter;
 
-            filterButtons.forEach(function (item) {
-                item.classList.toggle('active', item === button);
+            buttons.forEach(function (item) {
+                item.classList.toggle(
+                    "active",
+                    item === button
+                );
             });
 
-            portfolioCards.forEach(function (card) {
+            cards.forEach(function (card) {
 
                 card.hidden =
-                    filter !== 'all' &&
+                    filter !== "all" &&
                     card.dataset.category !== filter;
 
             });

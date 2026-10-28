@@ -1,123 +1,148 @@
+
 # NexaTech — Business Portfolio Website
 
-A responsive, database-driven business portfolio website built with PHP and MySQL. NexaTech helps businesses present their services, projects, and company information through a professional website, with an admin panel for managing supported content.
+A dynamic business portfolio website built with PHP, MySQL, HTML, CSS, and JavaScript.
+
+Developed as part of my Web Development Internship at Violet Programming.
 
 ## Project Overview
 
-NexaTech was developed as part of my web development training at Violet Programming. The project demonstrates my practical experience in building dynamic PHP websites, integrating relational databases, and implementing content management functionality.
+NexaTech is a responsive business website designed to present company information, services, portfolio projects, and contact details.
 
-The website separates the public-facing experience from the administration interface, allowing visitors to explore business information while authorized users manage website content.
+The website includes a database-driven frontend and an administrative dashboard for managing website content.
 
-## Key Features
+## Features
 
 ### Public Website
 
-- Responsive layout for different screen sizes.
-- Home and About sections.
-- Dynamic Services section.
-- Portfolio gallery with project categories and filtering.
-- Frequently Asked Questions (FAQ) section.
-- Contact section displaying company information.
+- Responsive homepage and navigation
+- Hero and About sections
+- Dynamic services section
+- Portfolio gallery with category filters
+- Frequently Asked Questions (FAQ)
+- Contact information
+- Content retrieved from MySQL
 
-### Admin Panel
+### Admin Dashboard
 
-- Admin login and logout.
-- Dashboard for website content management.
-- Create, edit, and delete portfolio projects.
-- Manage website sections and services.
-- Manage frequently asked questions.
-- Activate and deactivate supported content.
-- Update company contact information.
-- Store and retrieve website content through MySQL.
-
-## My Contribution
-
-I developed the website using PHP, HTML, CSS, JavaScript, and MySQL. My work included:
-
-- Building and styling the public website interface.
-- Connecting dynamic website sections and services to database records.
-- Implementing portfolio filtering and navigation.
-- Developing administrative content management functionality.
-- Organizing project files and troubleshooting database and layout issues.
-
-## Technologies Used
-
-- **Frontend:** HTML5, CSS3, JavaScript
-- **Backend:** PHP
-- **Database:** MySQL, SQL
-- **Database Management:** phpMyAdmin
-- **Local Development:** XAMPP, Apache
-- **Version Control:** Git, GitHub
-
-## Project Structure
-
-```text
-business-portfolio/
-├── admin/
-├── assets/
-│   ├── css/
-│   └── images/
-├── includes/
-│   └── db.php
-├── index.php
-├── business_portfolio_db.sql
-├── .gitignore
-└── README.md
-```
-
-*The structure above summarizes the main project files and directories.*
-
-## Installation and Setup
-
-### Prerequisites
-
-- XAMPP with PHP and MySQL.
-- Apache and MySQL services.
-- phpMyAdmin.
-
-### Steps
-
-1. Install [XAMPP](https://www.apachefriends.org/).
-2. Clone or download this repository into your XAMPP `htdocs` directory.
-3. Start Apache and MySQL from the XAMPP Control Panel.
-4. Open phpMyAdmin at `http://localhost/phpmyadmin`.
-5. Create a database named `business_portfolio_db`.
-6. Import the `business_portfolio_db.sql` file.
-7. Configure your local database connection in `includes/db.php`. If the file is excluded from the repository, create it locally using your own database credentials.
-8. Open the website at `http://localhost/business-portfolio/`.
-
-**Security note:** Do not commit database passwords or other private credentials to a public repository.
+- Admin login interface
+- Dashboard for content management
+- Manage website sections
+- Add, edit, and delete services
+- Update company information
+- Manage content visibility
 
 ## Screenshots
 
-Screenshots of the public website and admin panel can be added here to demonstrate the interface and content management features.
+### Website Homepage
+
+![NexaTech Homepage](nexatech-home.png)
+
+### Admin Dashboard
+
+![NexaTech Admin Dashboard](nexatech-dashboard.png)
+
+## Technologies Used
+
+- PHP
+- MySQL
+- HTML5
+- CSS3
+- JavaScript
+- XAMPP
+- phpMyAdmin
+- Git & GitHub
+
+## Database Structure
+
+The application uses a MySQL database named `business_portfolio_db`.
+
+Main tables:
+
+- `sections` — Stores website sections and content.
+- `services` — Stores service information and display order.
+- `company_info` — Stores company contact details.
+
+## Installation and Setup
+
+### Requirements
+
+- XAMPP
+- PHP
+- MySQL
+- Web browser
+
+### Steps
+
+1. Install and open XAMPP.
+2. Start Apache and MySQL.
+3. Clone or download this repository.
+4. Place the project folder inside `C:\xampp\htdocs\`.
+5. Open phpMyAdmin at `http://localhost/phpmyadmin`.
+6. Create a database named `business_portfolio_db`.
+7. Import the project's SQL database export, if available.
+8. Configure the local database connection in `includes/db.php`.
+9. Open the project in your browser.
+
+### Website
+
+`http://localhost/business-portfolio/`
+
+### Admin Dashboard
+
+`http://localhost/business-portfolio/admin/`
+
+The exact local URL depends on the project folder name.
+
+## My Contribution
+
+During my internship at Violet Programming, I worked on:
+
+- Developing the responsive frontend.
+- Integrating PHP with MySQL.
+- Creating dynamic website sections.
+- Building the services and portfolio interfaces.
+- Implementing the FAQ section.
+- Developing administrative content management features.
+- Debugging PHP and database errors.
+- Improving page layouts and responsiveness.
+
+## Technical Challenges
+
+### Database-Driven Content
+
+Connected the frontend to MySQL so website content could be managed dynamically.
+
+### Responsive Layout
+
+Improved CSS layouts to maintain consistent spacing and presentation across screen sizes.
+
+### Content Management
+
+Implemented administrative features for updating website sections and services.
 
 ## What I Learned
 
-- Building dynamic web applications with PHP and MySQL.
-- Integrating PHP pages with a relational database.
-- Implementing CRUD operations for website content.
-- Managing dynamic sections, services, and portfolio records.
-- Creating responsive layouts and interactive portfolio filtering.
-- Organizing code and debugging a local application with XAMPP.
-- Using Git and GitHub for version control.
+- PHP and MySQL integration
+- Dynamic website development
+- CRUD operations
+- Responsive CSS design
+- Admin dashboard development
+- Debugging and troubleshooting
+- Git and GitHub workflows
+
+## Project Status
+
+Completed as an internship project.
+
+The application runs locally using XAMPP, PHP, and MySQL.
 
 ## Developer
 
 **Sally Kadi**
 
-- **GitHub:** [sally-kadi](https://github.com/sally-kadi)
-- **LinkedIn:** [Sally Kadi](https://www.linkedin.com/in/sally-kadi/)
-- **Email:** [Contact Me](mailto:sallykadi888@gmail.com)
+Junior PHP Full-Stack Developer | PHP, MySQL & JavaScript
 
-## Related Portfolio
-
-Explore my other projects and development experience through my personal portfolio.
-
-[Personal GitHub Profile](https://github.com/sally-kadi)
-
----
-
-*Developed as a web development training project.*
-
-© 2026 Sally Kadi
+- Portfolio: https://sally-kadi.github.io/sally-portfolio/
+- GitHub: https://github.com/sally-kadi
+- LinkedIn: https://www.linkedin.com/in/sally-kadi/

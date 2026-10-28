@@ -32,16 +32,6 @@ The website includes a dynamic public interface and an administrative dashboard 
 - Update company contact information
 - CSRF protection for login and logout requests
 
-## Screenshots
-
-### Website Homepage
-
-![NexaTech Homepage](nexatech-home.png)
-
-### Admin Dashboard
-
-![NexaTech Admin Dashboard](nexatech-dashboard.png)
-
 ## Technologies Used
 
 - PHP

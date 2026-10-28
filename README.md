@@ -1,36 +1,36 @@
-
 # NexaTech — Business Portfolio Website
 
-A dynamic business portfolio website built with PHP, MySQL, HTML, CSS, and JavaScript.
+A responsive, database-driven business portfolio website built with PHP, MySQL, HTML, CSS, and JavaScript.
 
 Developed as part of my Web Development Internship at Violet Programming.
 
 ## Project Overview
 
-NexaTech is a responsive business website designed to present company information, services, portfolio projects, and contact details.
+NexaTech is a business portfolio website designed to present company information, services, portfolio projects, frequently asked questions, and contact details.
 
-The website includes a database-driven frontend and an administrative dashboard for managing website content.
+The website includes a dynamic public interface and an administrative dashboard for managing website content.
 
 ## Features
 
 ### Public Website
-
 - Responsive homepage and navigation
-- Hero and About sections
-- Dynamic services section
+- Dynamic Home and About sections
+- Services section powered by MySQL
 - Portfolio gallery with category filters
 - Frequently Asked Questions (FAQ)
-- Contact information
-- Content retrieved from MySQL
+- Dynamic company contact information
+- Database-driven content
 
 ### Admin Dashboard
-
-- Admin login interface
-- Dashboard for content management
+- Admin login and logout
+- Session-based access protection
+- Dashboard statistics for sections, services, portfolio projects, and FAQs
 - Manage website sections
-- Add, edit, and delete services
-- Update company information
-- Manage content visibility
+- Add, edit, delete, and activate or deactivate services
+- Add, edit, delete, and activate or deactivate portfolio projects
+- Manage frequently asked questions
+- Update company contact information
+- CSRF protection for login and logout requests
 
 ## Screenshots
 
@@ -51,17 +51,22 @@ The website includes a database-driven frontend and an administrative dashboard 
 - JavaScript
 - XAMPP
 - phpMyAdmin
-- Git & GitHub
+- Git and GitHub
 
 ## Database Structure
 
-The application uses a MySQL database named `business_portfolio_db`.
+The project uses a MySQL database named `business_portfolio_db`.
 
 Main tables:
 
-- `sections` — Stores website sections and content.
-- `services` — Stores service information and display order.
-- `company_info` — Stores company contact details.
+- `admin_users` — Stores administrator account information.
+- `sections` — Stores website section content and settings.
+- `services` — Stores business services and display order.
+- `portfolio_items` — Stores portfolio project information, categories, images, and status.
+- `faqs` — Stores frequently asked questions and answers.
+- `company_info` — Stores company contact information.
+
+The database export is included in `business_portfolio_db.sql`.
 
 ## Installation and Setup
 
@@ -69,8 +74,8 @@ Main tables:
 
 - XAMPP
 - PHP
-- MySQL
-- Web browser
+- MySQL or MariaDB
+- A web browser
 
 ### Steps
 
@@ -78,56 +83,64 @@ Main tables:
 2. Start Apache and MySQL.
 3. Clone or download this repository.
 4. Place the project folder inside `C:\xampp\htdocs\`.
-5. Open phpMyAdmin at `http://localhost/phpmyadmin`.
+5. Open phpMyAdmin at `http://localhost/phpmyadmin/`.
 6. Create a database named `business_portfolio_db`.
-7. Import the project's SQL database export, if available.
-8. Configure the local database connection in `includes/db.php`.
-9. Open the project in your browser.
+7. Select the database and import `business_portfolio_db.sql`.
+8. Check the database connection settings in `includes/db.php`.
+9. Start Apache and MySQL in XAMPP.
+10. Open the website in your browser.
 
-### Website
+### Website URL
 
 `http://localhost/business-portfolio/`
 
-### Admin Dashboard
+### Admin Login
 
-`http://localhost/business-portfolio/admin/`
+`http://localhost/business-portfolio/admin/login.php`
 
-The exact local URL depends on the project folder name.
+Administrator credentials must correspond to an account stored in the `admin_users` table. Use the credentials configured for your local project.
 
 ## My Contribution
 
 During my internship at Violet Programming, I worked on:
 
-- Developing the responsive frontend.
+- Developing the responsive website interface.
 - Integrating PHP with MySQL.
-- Creating dynamic website sections.
-- Building the services and portfolio interfaces.
+- Building dynamic website sections.
+- Developing the services and portfolio interfaces.
 - Implementing the FAQ section.
-- Developing administrative content management features.
+- Creating administrative content management features.
+- Implementing login and logout functionality.
 - Debugging PHP and database errors.
-- Improving page layouts and responsiveness.
+- Improving layouts and responsiveness.
+- Using Git and GitHub to manage project changes.
 
 ## Technical Challenges
 
-### Database-Driven Content
+### Database Integration
 
-Connected the frontend to MySQL so website content could be managed dynamically.
-
-### Responsive Layout
-
-Improved CSS layouts to maintain consistent spacing and presentation across screen sizes.
+Connected PHP pages to MySQL to retrieve and manage website content dynamically.
 
 ### Content Management
 
-Implemented administrative features for updating website sections and services.
+Implemented administrative pages for managing services, portfolio projects, FAQs, sections, and company information.
+
+### Authentication and Session Management
+
+Implemented administrator authentication, session handling, and protected admin pages.
+
+### Responsive Design
+
+Improved CSS layouts and spacing to provide a consistent experience across different screen sizes.
 
 ## What I Learned
 
 - PHP and MySQL integration
-- Dynamic website development
+- Database-driven website development
 - CRUD operations
 - Responsive CSS design
 - Admin dashboard development
+- Authentication and session management
 - Debugging and troubleshooting
 - Git and GitHub workflows
 

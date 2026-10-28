@@ -3,6 +3,11 @@
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../includes/db.php";
 
+// Prevent caching of protected pages
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 // Load all sections
 $result = $conn->query(
     "SELECT id, section_key, title, subtitle, status
@@ -16,6 +21,7 @@ if (!$result) {
 
 $sections = $result->fetch_all(MYSQLI_ASSOC);
 
+// Escape HTML output
 function e($value) {
     return htmlspecialchars(
         (string)($value ?? ""),
@@ -27,6 +33,11 @@ function e($value) {
 // CSRF token for delete forms
 if (empty($_SESSION["csrf_token"])) {
     $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+}
+
+// CSRF token for logout
+if (empty($_SESSION["logout_csrf"])) {
+    $_SESSION["logout_csrf"] = bin2hex(random_bytes(32));
 }
 ?>
 
@@ -81,6 +92,28 @@ body {
     background: #47b2e4;
 }
 
+.logout-form {
+    margin-top: 22px;
+}
+
+.logout-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 18px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.logout-btn:hover {
+    background: #c0392b;
+}
+
 .main {
     margin-left: 250px;
     padding: 40px;
@@ -129,6 +162,10 @@ h1 {
 .btn-delete {
     background: #dc3545;
     color: white;
+}
+
+.btn:hover {
+    opacity: 0.9;
 }
 
 .table-card {
@@ -208,6 +245,12 @@ td {
     color: #777;
 }
 
+.footer {
+    margin-top: 50px;
+    color: #999;
+    font-size: 14px;
+}
+
 @media (max-width: 1100px) {
     .actions {
         flex-wrap: wrap;
@@ -240,26 +283,58 @@ td {
 
 <body>
 
+<!-- Sidebar -->
 <div class="sidebar">
+
     <h2>NexaTech Admin</h2>
 
     <a href="index.php">Dashboard</a>
-    <a href="sections.php" class="active">Sections</a>
+
+    <a href="sections.php" class="active">
+        Sections
+    </a>
+
     <a href="services.php">Services</a>
+
     <a href="portfolio.php">Portfolio</a>
+
     <a href="faq.php">FAQ</a>
+
     <a href="contact.php">Contact</a>
 
     <a href="../index.php" target="_blank">
         View Website
     </a>
+
+    <!-- Secure Logout -->
+    <form
+        class="logout-form"
+        action="logout.php"
+        method="POST"
+    >
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?= e($_SESSION["logout_csrf"]) ?>"
+        >
+
+        <button
+            type="submit"
+            class="logout-btn"
+        >
+            Logout
+        </button>
+    </form>
+
 </div>
 
+<!-- Main Content -->
 <div class="main">
 
     <h1>Manage Sections</h1>
 
     <div class="header-actions">
+
         <h2>
             All Sections (<?= count($sections) ?>)
         </h2>
@@ -267,14 +342,16 @@ td {
         <a href="add-section.php" class="btn btn-add">
             + Add Section
         </a>
+
     </div>
 
     <div class="table-card">
 
         <table>
+
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>No.</th>
                     <th>Section</th>
                     <th>Title</th>
                     <th>Subtitle</th>
@@ -295,11 +372,13 @@ td {
 
             <?php else: ?>
 
-                <?php foreach ($sections as $section): ?>
+                <?php foreach ($sections as $index => $section): ?>
 
                     <tr>
+
+                        <!-- Sequential number -->
                         <td>
-                            <?= (int)$section["id"] ?>
+                            <?= $index + 1 ?>
                         </td>
 
                         <td class="section-name">
@@ -316,19 +395,24 @@ td {
 
                         <td>
                             <?php if ((int)$section["status"] === 1): ?>
+
                                 <span class="status-active">
                                     Active
                                 </span>
+
                             <?php else: ?>
+
                                 <span class="status-inactive">
                                     Inactive
                                 </span>
+
                             <?php endif; ?>
                         </td>
 
                         <td>
                             <div class="actions">
 
+                                <!-- Edit Section -->
                                 <a
                                     href="edit-section.php?id=<?= (int)$section['id'] ?>"
                                     class="btn btn-edit"
@@ -346,11 +430,13 @@ td {
 
                                 <?php if (!$isCoreSection): ?>
 
+                                    <!-- Delete Section -->
                                     <form
                                         action="delete-section.php"
                                         method="POST"
                                         onsubmit="return confirm('Delete this section?');"
                                     >
+
                                         <input
                                             type="hidden"
                                             name="id"
@@ -369,12 +455,14 @@ td {
                                         >
                                             Delete
                                         </button>
+
                                     </form>
 
                                 <?php endif; ?>
 
                             </div>
                         </td>
+
                     </tr>
 
                 <?php endforeach; ?>
@@ -382,8 +470,14 @@ td {
             <?php endif; ?>
 
             </tbody>
+
         </table>
 
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        NexaTech Admin Panel &copy; <?= date("Y") ?>
     </div>
 
 </div>

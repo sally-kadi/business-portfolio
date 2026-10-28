@@ -3,12 +3,18 @@
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../includes/db.php";
 
-// Generate CSRF token
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (empty($_SESSION["csrf_token"])) {
     $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
 }
 
-// Escape HTML output
+if (empty($_SESSION["logout_csrf"])) {
+    $_SESSION["logout_csrf"] = bin2hex(random_bytes(32));
+}
+
 function e($value) {
     return htmlspecialchars(
         (string)($value ?? ""),
@@ -17,7 +23,6 @@ function e($value) {
     );
 }
 
-// Load services from database
 $result = $conn->query(
     "SELECT id, title, description, image, status, sort_order
      FROM services
@@ -25,192 +30,257 @@ $result = $conn->query(
 );
 
 if (!$result) {
-    die("Database error: " . $conn->error);
+    die("Error loading services.");
 }
 
 $services = $result->fetch_all(MYSQLI_ASSOC);
+
+$csrfToken = $_SESSION["csrf_token"];
+$logoutToken = $_SESSION["logout_csrf"];
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Manage Services | NexaTech Admin</title>
+    <title>Manage Services | NexaTech Admin</title>
 
-<style>
-* {
-    box-sizing: border-box;
-}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f7fb;
-    color: #333;
-}
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            color: #334155;
+        }
 
-.sidebar {
-    width: 250px;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    background: #37517e;
-    padding: 30px 20px;
-    overflow-y: auto;
-}
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #37517e;
+            color: white;
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
 
-.sidebar h2 {
-    color: white;
-    text-align: center;
-    margin-bottom: 35px;
-}
+        .sidebar h2 {
+            font-size: 24px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
 
-.sidebar a {
-    display: block;
-    padding: 14px 18px;
-    margin-bottom: 10px;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-}
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
 
-.sidebar a:hover,
-.sidebar a.active {
-    background: #47b2e4;
-}
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #47b2e4;
+        }
 
-.main {
-    margin-left: 250px;
-    padding: 40px;
-}
+        .logout-form {
+            margin-top: 22px;
+        }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 25px;
-}
+        .logout-btn {
+            display: block;
+            width: 100%;
+            padding: 14px 18px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            text-align: left;
+            cursor: pointer;
+        }
 
-h1 {
-    color: #37517e;
-}
+        .logout-btn:hover {
+            background: #c0392b;
+        }
 
-.btn {
-    display: inline-block;
-    padding: 11px 18px;
-    border-radius: 7px;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    color: white;
-}
+        .main {
+            margin-left: 250px;
+            padding: 40px;
+            min-height: 100vh;
+        }
 
-.btn-add {
-    background: #47b2e4;
-}
+        .container {
+            max-width: 1250px;
+            margin: 0 auto;
+        }
 
-.btn-edit {
-    background: #37517e;
-}
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-bottom: 25px;
+        }
 
-.btn-delete {
-    background: #dc3545;
-}
+        h1 {
+            color: #37517e;
+            font-size: 30px;
+            margin-bottom: 12px;
+        }
 
-.btn-status {
-    background: #198754;
-}
+        .subtitle {
+            color: #64748b;
+            font-size: 15px;
+        }
 
-.btn:hover {
-    opacity: 0.9;
-}
+        .count {
+            margin: 25px 0 18px;
+            color: #37517e;
+            font-size: 20px;
+            font-weight: bold;
+        }
 
-.table-wrapper {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    overflow-x: auto;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-}
+        .btn {
+            display: inline-block;
+            padding: 9px 12px;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            text-decoration: none;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+        .btn-add {
+            padding: 12px 18px;
+            background: #47b2e4;
+            font-size: 14px;
+            font-weight: bold;
+        }
 
-th, td {
-    padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-}
+        .btn-edit {
+            background: #1769c2;
+        }
 
-th {
-    background: #eef4fa;
-    color: #37517e;
-}
+        .btn-status {
+            background: #e7a05b;
+        }
 
-td {
-    vertical-align: middle;
-}
+        .btn-delete {
+            background: #d93650;
+        }
 
-.actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-}
+        .btn:hover {
+            opacity: 0.85;
+        }
 
-.actions form {
-    margin: 0;
-}
+        .table-wrapper {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            overflow-x: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
 
-.status {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: bold;
-}
+        table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+        }
 
-.active-status {
-    background: #d4edda;
-    color: #155724;
-}
+        th {
+            padding: 16px 12px;
+            background: #f1f5f9;
+            color: #37517e;
+            text-align: left;
+            font-size: 13px;
+        }
 
-.inactive-status {
-    background: #f8d7da;
-    color: #721c24;
-}
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #edf0f5;
+            font-size: 13px;
+            vertical-align: middle;
+        }
 
-.empty {
-    text-align: center;
-    color: #777;
-    padding: 25px;
-}
+        tbody tr:hover {
+            background: #fafcff;
+        }
 
-@media(max-width: 768px) {
-    .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-    }
+        .description {
+            max-width: 350px;
+            line-height: 1.6;
+            color: #64748b;
+        }
 
-    .main {
-        margin-left: 0;
-        padding: 20px;
-    }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
 
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-}
-</style>
+        .active-status {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .inactive-status {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        .actions form {
+            display: inline;
+            margin: 0;
+        }
+
+        .empty {
+            padding: 35px;
+            text-align: center;
+            color: #64748b;
+        }
+
+        .footer {
+            margin-top: 50px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 25px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -224,9 +294,7 @@ td {
 
     <a href="sections.php">Sections</a>
 
-    <a href="services.php" class="active">
-        Services
-    </a>
+    <a href="services.php" class="active">Services</a>
 
     <a href="portfolio.php">Portfolio</a>
 
@@ -238,173 +306,181 @@ td {
         View Website
     </a>
 
+    <form
+        class="logout-form"
+        action="logout.php"
+        method="POST"
+    >
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?= e($logoutToken) ?>"
+        >
+
+        <button type="submit" class="logout-btn">
+            Logout
+        </button>
+    </form>
+
 </div>
 
 <!-- Main Content -->
 <div class="main">
+    <div class="container">
 
-    <div class="header">
+        <div class="header">
 
-        <div>
-            <h1>Manage Services</h1>
-            <p>Manage your website services dynamically.</p>
+            <div>
+                <h1>Manage Services</h1>
+                <p class="subtitle">
+                    Manage your website services dynamically.
+                </p>
+            </div>
+
+            <a href="add-service.php" class="btn btn-add">
+                + Add Service
+            </a>
+
         </div>
 
-        <a href="add-service.php" class="btn btn-add">
-            + Add Service
-        </a>
+        <div class="count">
+            All Services (<?= count($services) ?>)
+        </div>
 
-    </div>
+        <div class="table-wrapper">
 
-    <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Order</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
 
-        <table>
+                <tbody>
 
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Description</th>
-                    <th>Order</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            <?php if (empty($services)): ?>
-
-                <tr>
-                    <td colspan="6" class="empty">
-                        No services found.
-                    </td>
-                </tr>
-
-            <?php else: ?>
-
-                <?php foreach ($services as $service): ?>
+                <?php if (empty($services)): ?>
 
                     <tr>
-
-                        <td>
-                            <?= (int)$service["id"] ?>
+                        <td colspan="6" class="empty">
+                            No services found.
                         </td>
-
-                        <td>
-                            <?= e($service["title"]) ?>
-                        </td>
-
-                        <td>
-                            <?= e($service["description"]) ?>
-                        </td>
-
-                        <td>
-                            <?= (int)$service["sort_order"] ?>
-                        </td>
-
-                        <td>
-
-                            <?php if ((int)$service["status"] === 1): ?>
-
-                                <span class="status active-status">
-                                    Active
-                                </span>
-
-                            <?php else: ?>
-
-                                <span class="status inactive-status">
-                                    Inactive
-                                </span>
-
-                            <?php endif; ?>
-
-                        </td>
-
-                        <td>
-
-                            <div class="actions">
-
-                                <!-- Edit Service -->
-                                <a
-                                    href="edit-service.php?id=<?= (int)$service['id'] ?>"
-                                    class="btn btn-edit"
-                                >
-                                    Edit
-                                </a>
-
-                                <!-- Activate / Deactivate -->
-                                <form
-                                    action="toggle-service.php"
-                                    method="POST"
-                                >
-
-                                    <input
-                                        type="hidden"
-                                        name="id"
-                                        value="<?= (int)$service['id'] ?>"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="csrf_token"
-                                        value="<?= e($_SESSION['csrf_token']) ?>"
-                                    >
-
-                                    <button
-                                        type="submit"
-                                        class="btn btn-status"
-                                    >
-                                        <?= (int)$service["status"] === 1
-                                            ? "Deactivate"
-                                            : "Activate" ?>
-                                    </button>
-
-                                </form>
-
-                                <!-- Delete without confirmation -->
-                                <form
-                                    action="delete-service.php"
-                                    method="POST"
-                                >
-
-                                    <input
-                                        type="hidden"
-                                        name="id"
-                                        value="<?= (int)$service['id'] ?>"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="csrf_token"
-                                        value="<?= e($_SESSION['csrf_token']) ?>"
-                                    >
-
-                                    <button
-                                        type="submit"
-                                        class="btn btn-delete"
-                                    >
-                                        Delete
-                                    </button>
-
-                                </form>
-
-                            </div>
-
-                        </td>
-
                     </tr>
 
-                <?php endforeach; ?>
+                <?php else: ?>
 
-            <?php endif; ?>
+                    <?php $number = 1; ?>
 
-            </tbody>
+                    <?php foreach ($services as $service): ?>
 
-        </table>
+                        <?php
+                        $serviceId = (int)$service["id"];
+                        $isActive = (int)$service["status"] === 1;
+                        ?>
+
+                        <tr>
+                            <td><?= $number++ ?></td>
+
+                            <td>
+                                <strong>
+                                    <?= e($service["title"]) ?>
+                                </strong>
+                            </td>
+
+                            <td class="description">
+                                <?= e($service["description"]) ?>
+                            </td>
+
+                            <td>
+                                <?= (int)$service["sort_order"] ?>
+                            </td>
+
+                            <td>
+                                <span class="status <?= $isActive ? 'active-status' : 'inactive-status' ?>">
+                                    <?= $isActive ? "Active" : "Inactive" ?>
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="actions">
+
+                                    <a
+                                        href="edit-service.php?id=<?= $serviceId ?>"
+                                        class="btn btn-edit"
+                                    >
+                                        Edit
+                                    </a>
+
+                                    <form
+                                        action="toggle-service.php"
+                                        method="POST"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value="<?= $serviceId ?>"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="<?= e($csrfToken) ?>"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-status"
+                                        >
+                                            <?= $isActive ? "Deactivate" : "Activate" ?>
+                                        </button>
+                                    </form>
+
+                                    <form
+                                        action="delete-service.php"
+                                        method="POST"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value="<?= $serviceId ?>"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="<?= e($csrfToken) ?>"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-delete"
+                                        >
+                                            Delete
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </td>
+                        </tr>
+
+                    <?php endforeach; ?>
+
+                <?php endif; ?>
+
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="footer">
+            NexaTech Admin Panel &copy; <?= date("Y") ?>
+        </div>
 
     </div>
-
 </div>
 
 </body>

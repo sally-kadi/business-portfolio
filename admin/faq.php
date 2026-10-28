@@ -3,12 +3,24 @@
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../includes/db.php";
 
-// Generate CSRF token
+// Prevent browser caching
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+// CSRF tokens
 if (empty($_SESSION["csrf_token"])) {
     $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
 }
 
-// Escape HTML output
+if (empty($_SESSION["logout_csrf"])) {
+    $_SESSION["logout_csrf"] = bin2hex(random_bytes(32));
+}
+
+$csrfToken = $_SESSION["csrf_token"];
+$logoutToken = $_SESSION["logout_csrf"];
+
+// Escape HTML safely
 function e($value) {
     return htmlspecialchars(
         (string)($value ?? ""),
@@ -34,262 +46,282 @@ $faqs = $result->fetch_all(MYSQLI_ASSOC);
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Manage FAQ | NexaTech Admin</title>
+    <title>Manage FAQ | NexaTech Admin</title>
 
-<style>
-* {
-    box-sizing: border-box;
-}
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f4f7fb;
-    color: #333;
-}
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f7fb;
+            color: #334155;
+        }
 
-/* Sidebar */
-.sidebar {
-    width: 250px;
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    background: #37517e;
-    padding: 30px 20px;
-    overflow-y: auto;
-}
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background: #37517e;
+            color: white;
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
 
-.sidebar h2 {
-    color: white;
-    text-align: center;
-    margin-bottom: 35px;
-}
+        .sidebar h2 {
+            font-size: 24px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
 
-.sidebar a {
-    display: block;
-    padding: 14px 18px;
-    margin-bottom: 10px;
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-}
+        .sidebar a {
+            display: block;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
 
-.sidebar a:hover,
-.sidebar a.active {
-    background: #47b2e4;
-}
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #47b2e4;
+        }
 
-/* Main */
-.main {
-    margin-left: 250px;
-    padding: 40px;
-    min-width: 0;
-}
+        /* Logout */
+        .logout-form {
+            margin-top: 22px;
+        }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 25px;
-}
+        .logout-btn {
+            display: block;
+            width: 100%;
+            padding: 14px 18px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.3s;
+        }
 
-h1 {
-    color: #37517e;
-    margin: 0 0 10px;
-}
+        .logout-btn:hover {
+            background: #c0392b;
+        }
 
-.header p {
-    color: #6c757d;
-    margin: 0;
-}
+        /* Main content */
+        .main {
+            margin-left: 250px;
+            padding: 40px;
+            min-height: 100vh;
+            min-width: 0;
+        }
 
-/* Buttons */
-.btn {
-    display: inline-block;
-    padding: 10px 13px;
-    border: none;
-    border-radius: 7px;
-    text-decoration: none;
-    cursor: pointer;
-    font-size: 12px;
-    font-family: Arial, sans-serif;
-    color: white;
-    text-align: center;
-    white-space: nowrap;
-}
+        .container {
+            max-width: 1250px;
+            margin: 0 auto;
+        }
 
-.btn-add {
-    background: #47b2e4;
-    padding: 11px 18px;
-    font-size: 14px;
-}
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-bottom: 25px;
+        }
 
-.btn-edit {
-    background: #37517e;
-}
+        h1 {
+            color: #37517e;
+            font-size: 30px;
+            margin-bottom: 12px;
+        }
 
-.btn-status {
-    background: #198754;
-}
+        .subtitle {
+            color: #64748b;
+            font-size: 15px;
+        }
 
-.btn-delete {
-    background: #dc3545;
-}
+        .count {
+            margin: 25px 0 18px;
+            color: #37517e;
+            font-size: 20px;
+            font-weight: bold;
+        }
 
-.btn:hover {
-    opacity: 0.85;
-}
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 9px 12px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            color: white;
+            text-align: center;
+            white-space: nowrap;
+        }
 
-/* Table */
-.table-wrapper {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    overflow-x: auto;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-}
+        .btn-add {
+            background: #47b2e4;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: bold;
+        }
 
-table {
-    width: 100%;
-    min-width: 1100px;
-    border-collapse: collapse;
-}
+        .btn-edit {
+            background: #1769c2;
+        }
 
-th,
-td {
-    padding: 15px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-    vertical-align: middle;
-}
+        .btn-status {
+            background: #e7a05b;
+        }
 
-th {
-    background: #eef4fa;
-    color: #37517e;
-    white-space: nowrap;
-    font-size: 14px;
-}
+        .btn-delete {
+            background: #d93650;
+        }
 
-td {
-    font-size: 14px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-}
+        .btn:hover {
+            opacity: 0.85;
+        }
 
-tbody tr:hover {
-    background: #fafcff;
-}
+        /* Table */
+        .table-wrapper {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            overflow-x: auto;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
 
-tbody tr:last-child td {
-    border-bottom: none;
-}
+        table {
+            width: 100%;
+            min-width: 950px;
+            border-collapse: collapse;
+        }
 
-th:nth-child(1) {
-    width: 65px;
-}
+        th {
+            padding: 16px 12px;
+            background: #f1f5f9;
+            color: #37517e;
+            text-align: left;
+            font-size: 13px;
+        }
 
-th:nth-child(2) {
-    width: 230px;
-}
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #edf0f5;
+            vertical-align: middle;
+            font-size: 13px;
+            line-height: 1.6;
+            overflow-wrap: anywhere;
+        }
 
-th:nth-child(4) {
-    width: 110px;
-}
+        tbody tr:hover {
+            background: #fafcff;
+        }
 
-th:nth-child(5) {
-    width: 365px;
-}
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
 
-/* Status */
-.status {
-    display: inline-block;
-    min-width: 78px;
-    padding: 6px 12px;
-    border-radius: 20px;
-    text-align: center;
-    white-space: nowrap;
-    font-size: 12px;
-    font-weight: bold;
-}
+        .question {
+            font-weight: bold;
+            color: #37517e;
+            min-width: 180px;
+        }
 
-.active-status {
-    background: #d4edda;
-    color: #155724;
-}
+        .answer {
+            color: #64748b;
+            min-width: 250px;
+        }
 
-.inactive-status {
-    background: #f8d7da;
-    color: #721c24;
-}
+        /* Status */
+        .status {
+            display: inline-block;
+            min-width: 78px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
 
-/* Actions */
-.actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    flex-wrap: nowrap;
-    white-space: nowrap;
-}
+        .active-status {
+            background: #d4edda;
+            color: #155724;
+        }
 
-.actions form {
-    margin: 0;
-    display: inline-flex;
-    flex-shrink: 0;
-}
+        .inactive-status {
+            background: #f8d7da;
+            color: #721c24;
+        }
 
-.actions .btn {
-    padding: 10px 12px;
-    font-size: 12px;
-}
+        /* Actions */
+        .actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
 
-/* Empty Table */
-.empty-message {
-    text-align: center;
-    color: #6c757d;
-    padding: 25px;
-}
+        .actions form {
+            display: inline-flex;
+            margin: 0;
+            flex-shrink: 0;
+        }
 
-/* Responsive */
-@media (max-width: 1000px) {
-    .sidebar {
-        width: 220px;
-        padding: 25px 15px;
-    }
+        .empty-message {
+            text-align: center;
+            color: #64748b;
+            padding: 35px;
+        }
 
-    .main {
-        margin-left: 220px;
-        padding: 25px 18px;
-    }
-}
+        .footer {
+            margin-top: 50px;
+            color: #999;
+            font-size: 14px;
+        }
 
-@media (max-width: 768px) {
-    .sidebar {
-        position: relative;
-        width: 100%;
-        height: auto;
-    }
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+            }
 
-    .main {
-        margin-left: 0;
-        padding: 20px 12px;
-    }
+            .main {
+                margin-left: 0;
+                padding: 25px 15px;
+            }
 
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
 
-    .table-wrapper {
-        padding: 12px;
-    }
-}
-</style>
+            .table-wrapper {
+                padding: 12px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -300,179 +332,191 @@ th:nth-child(5) {
     <h2>NexaTech Admin</h2>
 
     <a href="index.php">Dashboard</a>
+
     <a href="sections.php">Sections</a>
+
     <a href="services.php">Services</a>
+
     <a href="portfolio.php">Portfolio</a>
+
     <a href="faq.php" class="active">FAQ</a>
+
     <a href="contact.php">Contact</a>
 
     <a href="../index.php" target="_blank">
         View Website
     </a>
 
+    <!-- Secure Logout -->
+    <form
+        class="logout-form"
+        action="logout.php"
+        method="POST"
+    >
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?= e($logoutToken) ?>"
+        >
+
+        <button type="submit" class="logout-btn">
+            Logout
+        </button>
+    </form>
+
 </div>
 
-<!-- Main -->
+<!-- Main Content -->
 <div class="main">
+    <div class="container">
 
-    <div class="header">
+        <div class="header">
+            <div>
+                <h1>Manage FAQ</h1>
+                <p class="subtitle">
+                    Manage frequently asked questions on your website.
+                </p>
+            </div>
 
-        <div>
-            <h1>Manage FAQ</h1>
-
-            <p>
-                Manage frequently asked questions on your website.
-            </p>
+            <a href="add-faq.php" class="btn btn-add">
+                + Add FAQ
+            </a>
         </div>
 
-        <a href="add-faq.php" class="btn btn-add">
-            + Add FAQ
-        </a>
+        <div class="count">
+            All FAQs (<?= count($faqs) ?>)
+        </div>
 
-    </div>
+        <div class="table-wrapper">
 
-    <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No.</th>
+                        <th>Question</th>
+                        <th>Answer</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
 
-        <table>
+                <tbody>
 
-            <thead>
-                <tr>
-                    <th>No.</th>
-                    <th>Question</th>
-                    <th>Answer</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            <?php if (empty($faqs)): ?>
-
-                <tr>
-                    <td colspan="5" class="empty-message">
-                        No FAQs found.
-                    </td>
-                </tr>
-
-            <?php else: ?>
-
-                <?php foreach ($faqs as $index => $faq): ?>
+                <?php if (empty($faqs)): ?>
 
                     <tr>
-
-                        <td><?= $index + 1 ?></td>
-
-                        <td>
-                            <?= e($faq["question"]) ?>
+                        <td colspan="5" class="empty-message">
+                            No FAQs found.
                         </td>
-
-                        <td>
-                            <?= e($faq["answer"]) ?>
-                        </td>
-
-                        <td>
-
-                            <?php if ((int)$faq["status"] === 1): ?>
-
-                                <span class="status active-status">
-                                    Active
-                                </span>
-
-                            <?php else: ?>
-
-                                <span class="status inactive-status">
-                                    Inactive
-                                </span>
-
-                            <?php endif; ?>
-
-                        </td>
-
-                        <td>
-
-                            <div class="actions">
-
-                                <!-- Edit FAQ -->
-                                <a
-                                    href="edit-faq.php?id=<?= (int)$faq["id"] ?>"
-                                    class="btn btn-edit"
-                                >
-                                    Edit
-                                </a>
-
-                                <!-- Toggle FAQ -->
-                                <form
-                                    action="toggle-faq.php"
-                                    method="POST"
-                                >
-
-                                    <input
-                                        type="hidden"
-                                        name="id"
-                                        value="<?= (int)$faq["id"] ?>"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="csrf_token"
-                                        value="<?= e($_SESSION["csrf_token"]) ?>"
-                                    >
-
-                                    <button
-                                        type="submit"
-                                        class="btn btn-status"
-                                    >
-                                        <?= (int)$faq["status"] === 1
-                                            ? "Deactivate"
-                                            : "Activate" ?>
-                                    </button>
-
-                                </form>
-
-                                <!-- Delete FAQ -->
-                                <form
-                                    action="delete-faq.php"
-                                    method="POST"
-                                >
-
-                                    <input
-                                        type="hidden"
-                                        name="id"
-                                        value="<?= (int)$faq["id"] ?>"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="csrf_token"
-                                        value="<?= e($_SESSION["csrf_token"]) ?>"
-                                    >
-
-                                    <button
-                                        type="submit"
-                                        class="btn btn-delete"
-                                    >
-                                        Delete
-                                    </button>
-
-                                </form>
-
-                            </div>
-
-                        </td>
-
                     </tr>
 
-                <?php endforeach; ?>
+                <?php else: ?>
 
-            <?php endif; ?>
+                    <?php foreach ($faqs as $index => $faq): ?>
 
-            </tbody>
+                        <?php
+                        $faqId = (int)$faq["id"];
+                        $isActive = (int)$faq["status"] === 1;
+                        ?>
 
-        </table>
+                        <tr>
+                            <!-- Sequential number -->
+                            <td><?= $index + 1 ?></td>
+
+                            <td class="question">
+                                <?= e($faq["question"]) ?>
+                            </td>
+
+                            <td class="answer">
+                                <?= e($faq["answer"]) ?>
+                            </td>
+
+                            <td>
+                                <span class="status <?= $isActive ? 'active-status' : 'inactive-status' ?>">
+                                    <?= $isActive ? "Active" : "Inactive" ?>
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="actions">
+
+                                    <!-- Edit -->
+                                    <a
+                                        href="edit-faq.php?id=<?= $faqId ?>"
+                                        class="btn btn-edit"
+                                    >
+                                        Edit
+                                    </a>
+
+                                    <!-- Activate / Deactivate -->
+                                    <form
+                                        action="toggle-faq.php"
+                                        method="POST"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value="<?= $faqId ?>"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="<?= e($csrfToken) ?>"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-status"
+                                        >
+                                            <?= $isActive ? "Deactivate" : "Activate" ?>
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete -->
+                                    <form
+                                        action="delete-faq.php"
+                                        method="POST"
+                                        onsubmit="return confirm('Are you sure you want to delete this FAQ?');"
+                                    >
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value="<?= $faqId ?>"
+                                        >
+
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="<?= e($csrfToken) ?>"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-delete"
+                                        >
+                                            Delete
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </td>
+                        </tr>
+
+                    <?php endforeach; ?>
+
+                <?php endif; ?>
+
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="footer">
+            NexaTech Admin Panel &copy; <?= date("Y") ?>
+        </div>
 
     </div>
-
 </div>
 
 </body>

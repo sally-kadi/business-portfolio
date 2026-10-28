@@ -3,9 +3,18 @@
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../includes/db.php";
 
-// Generate CSRF token
+// Prevent caching
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+// CSRF tokens
 if (empty($_SESSION["csrf_token"])) {
     $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+}
+
+if (empty($_SESSION["logout_csrf"])) {
+    $_SESSION["logout_csrf"] = bin2hex(random_bytes(32));
 }
 
 // Escape HTML output
@@ -47,19 +56,16 @@ if (!$company) {
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    // Validate CSRF token
     $token = $_POST["csrf_token"] ?? "";
 
     if (
         !is_string($token) ||
-        empty($_SESSION["csrf_token"]) ||
         !hash_equals($_SESSION["csrf_token"], $token)
     ) {
         http_response_code(403);
         exit("Invalid request. Please refresh the page.");
     }
 
-    // Read submitted values
     $companyNameInput = $_POST["company_name"] ?? "";
     $emailInput = $_POST["email"] ?? "";
     $phoneInput = $_POST["phone"] ?? "";
@@ -103,7 +109,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     } else {
 
-        // Update existing company information
         if ($company["id"] !== null) {
 
             $stmt = $conn->prepare(
@@ -128,7 +133,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         } else {
 
-            // Insert if company information does not exist
             $stmt = $conn->prepare(
                 "INSERT INTO company_info
                     (company_name, email, phone, address)
@@ -145,20 +149,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
         if ($stmt->execute()) {
-
             $stmt->close();
 
             header("Location: contact.php?updated=1");
             exit;
 
         } else {
-
             $error = "Unable to save company information.";
             $stmt->close();
         }
     }
 
-    // Keep entered values if validation fails
+    // Keep submitted values if validation fails
     $company["company_name"] = $companyName;
     $company["email"] = $email;
     $company["phone"] = $phone;
@@ -229,10 +231,33 @@ body {
     background: #47b2e4;
 }
 
+/* Logout */
+.logout-form {
+    margin-top: 22px;
+}
+
+.logout-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 18px;
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.logout-btn:hover {
+    background: #c0392b;
+}
+
 /* Main */
 .main {
     margin-left: 250px;
     padding: 40px;
+    min-height: 100vh;
 }
 
 .page-header {
@@ -290,11 +315,10 @@ body {
     padding: 13px 15px;
     border: 1px solid #dce3ed;
     border-radius: 8px;
-    background: #fff;
+    background: white;
     font-family: Arial, sans-serif;
     font-size: 15px;
     color: #333;
-    transition: border-color 0.2s;
 }
 
 .form-group input:focus,
@@ -368,17 +392,19 @@ body {
     color: #842029;
 }
 
+/* Footer */
+.footer {
+    margin-top: 50px;
+    color: #999;
+    font-size: 14px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
-
     .sidebar {
         position: relative;
         width: 100%;
         height: auto;
-    }
-
-    .sidebar h2 {
-        margin-bottom: 20px;
     }
 
     .main {
@@ -409,11 +435,31 @@ body {
     <a href="services.php">Services</a>
     <a href="portfolio.php">Portfolio</a>
     <a href="faq.php">FAQ</a>
-    <a href="contact.php" class="active">Contact</a>
+
+    <a href="contact.php" class="active">
+        Contact
+    </a>
 
     <a href="../index.php" target="_blank">
         View Website
     </a>
+
+    <!-- Secure Logout -->
+    <form
+        class="logout-form"
+        action="logout.php"
+        method="POST"
+    >
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?= e($_SESSION["logout_csrf"]) ?>"
+        >
+
+        <button type="submit" class="logout-btn">
+            Logout
+        </button>
+    </form>
 
 </div>
 
@@ -421,13 +467,10 @@ body {
 <div class="main">
 
     <div class="page-header">
-
         <h1>Contact Management</h1>
-
         <p>
             Manage your company contact information dynamically.
         </p>
-
     </div>
 
     <div class="form-card">
@@ -440,24 +483,20 @@ body {
         </p>
 
         <?php if ($success !== ""): ?>
-
             <div class="success" role="status">
                 <?= e($success) ?>
             </div>
-
         <?php endif; ?>
 
         <?php if ($error !== ""): ?>
-
             <div class="error" role="alert">
                 <?= e($error) ?>
             </div>
-
         <?php endif; ?>
 
+        <!-- Contact Form -->
         <form method="POST">
 
-            <!-- CSRF Protection -->
             <input
                 type="hidden"
                 name="csrf_token"
@@ -465,7 +504,6 @@ body {
             >
 
             <div class="form-group">
-
                 <label for="company_name">
                     Company Name
                 </label>
@@ -478,11 +516,9 @@ body {
                     maxlength="150"
                     required
                 >
-
             </div>
 
             <div class="form-group">
-
                 <label for="email">
                     Email Address
                 </label>
@@ -495,11 +531,9 @@ body {
                     maxlength="255"
                     required
                 >
-
             </div>
 
             <div class="form-group">
-
                 <label for="phone">
                     Phone Number
                 </label>
@@ -512,11 +546,9 @@ body {
                     maxlength="50"
                     required
                 >
-
             </div>
 
             <div class="form-group">
-
                 <label for="address">
                     Address
                 </label>
@@ -526,7 +558,6 @@ body {
                     name="address"
                     required
                 ><?= e($company["address"]) ?></textarea>
-
             </div>
 
             <div class="form-actions">
@@ -551,6 +582,10 @@ body {
 
         </form>
 
+    </div>
+
+    <div class="footer">
+        NexaTech Admin Panel &copy; <?= date("Y") ?>
     </div>
 
 </div>

@@ -3,13 +3,21 @@
 require_once __DIR__ . "/auth.php";
 require_once __DIR__ . "/../includes/db.php";
 
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 if (empty($_SESSION["portfolio_csrf"])) {
     $_SESSION["portfolio_csrf"] = bin2hex(random_bytes(32));
 }
 
-$csrfToken = $_SESSION["portfolio_csrf"];
+if (empty($_SESSION["logout_csrf"])) {
+    $_SESSION["logout_csrf"] = bin2hex(random_bytes(32));
+}
 
-// Load portfolio projects
+$csrfToken = $_SESSION["portfolio_csrf"];
+$logoutToken = $_SESSION["logout_csrf"];
+
 $sql = "SELECT * FROM portfolio_items ORDER BY id DESC";
 $result = $conn->query($sql);
 
@@ -19,7 +27,6 @@ if (!$result) {
 
 $projects = $result->fetch_all(MYSQLI_ASSOC);
 
-// Escape output safely
 function e($value) {
     return htmlspecialchars(
         (string)($value ?? ""),
@@ -28,7 +35,6 @@ function e($value) {
     );
 }
 
-// Prepare image URL for the admin page
 function portfolioImagePath($path) {
     $path = trim((string)$path);
 
@@ -36,16 +42,14 @@ function portfolioImagePath($path) {
         return "";
     }
 
-    // Allow external URLs and absolute paths
     if (
-        preg_match('/^https?:\/\//i', $path) ||
+        preg_match('~^https?://~i', $path) ||
         str_starts_with($path, "/") ||
         str_starts_with($path, "../")
     ) {
         return $path;
     }
 
-    // Relative paths such as assets/images/banner.png
     return "../" . $path;
 }
 ?>
@@ -60,15 +64,77 @@ function portfolioImagePath($path) {
 
     <style>
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
 
         body {
-            margin: 0;
-            padding: 35px;
             font-family: Arial, sans-serif;
             background: #f4f7fb;
             color: #334155;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            height: 100vh;
+            background: #37517e;
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 30px 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h2 {
+            font-size: 24px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .sidebar a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #47b2e4;
+        }
+
+        .logout-form {
+            margin-top: 22px;
+        }
+
+        .logout-btn {
+            display: block;
+            width: 100%;
+            padding: 14px 18px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+        }
+
+        /* Main Content */
+        .main {
+            margin-left: 250px;
+            padding: 40px;
+            min-height: 100vh;
         }
 
         .container {
@@ -86,13 +152,12 @@ function portfolioImagePath($path) {
         }
 
         h1 {
-            margin: 0 0 12px;
             color: #37517e;
             font-size: 30px;
+            margin-bottom: 12px;
         }
 
         .subtitle {
-            margin: 0;
             color: #64748b;
             font-size: 15px;
         }
@@ -119,12 +184,13 @@ function portfolioImagePath($path) {
             background: #299bd0;
         }
 
+        /* Portfolio Table */
         .table-card {
             overflow-x: auto;
             background: white;
             padding: 18px;
             border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
         }
 
         table {
@@ -179,11 +245,11 @@ function portfolioImagePath($path) {
             font-weight: bold;
         }
 
-        .active {
+        .status.active {
             color: #25805a;
         }
 
-        .inactive {
+        .status.inactive {
             color: #d97706;
         }
 
@@ -241,8 +307,28 @@ function portfolioImagePath($path) {
             color: #64748b;
         }
 
+        .footer {
+            margin-top: 50px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .main {
+                margin-left: 0;
+                padding: 25px;
+            }
+        }
+
         @media (max-width: 650px) {
-            body {
+            .main {
                 padding: 18px 12px;
             }
 
@@ -259,169 +345,216 @@ function portfolioImagePath($path) {
 
 <body>
 
-<div class="container">
+<!-- Sidebar -->
+<div class="sidebar">
 
-    <div class="page-header">
-        <div>
-            <h1>Manage Portfolio</h1>
-            <p class="subtitle">
-                Manage your projects and portfolio images.
-            </p>
-        </div>
+    <h2>NexaTech Admin</h2>
 
-        <a href="add-portfolio.php" class="add-btn">
-            + Add Project
-        </a>
-    </div>
+    <a href="index.php">Dashboard</a>
+    <a href="sections.php">Sections</a>
+    <a href="services.php">Services</a>
+    <a href="portfolio.php" class="active">Portfolio</a>
+    <a href="faq.php">FAQ</a>
+    <a href="contact.php">Contact</a>
 
-    <div class="count">
-        All Projects (<?= count($projects) ?>)
-    </div>
+    <a href="../index.php" target="_blank" rel="noopener noreferrer">
+        View Website
+    </a>
 
-    <div class="table-card">
+    <form
+        class="logout-form"
+        action="logout.php"
+        method="POST"
+    >
+        <input
+            type="hidden"
+            name="csrf_token"
+            value="<?= e($logoutToken) ?>"
+        >
 
-        <?php if (empty($projects)): ?>
+        <button type="submit" class="logout-btn">
+            Logout
+        </button>
+    </form>
 
-            <div class="empty">
-                No portfolio projects found.
+</div>
+
+<!-- Main Content -->
+<div class="main">
+    <div class="container">
+
+        <div class="page-header">
+            <div>
+                <h1>Manage Portfolio</h1>
+                <p class="subtitle">
+                    Manage your projects and portfolio images.
+                </p>
             </div>
 
-        <?php else: ?>
+            <a href="add-portfolio.php" class="add-btn">
+                + Add Project
+            </a>
+        </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>No.</th>
-                        <th>Image</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+        <div class="count">
+            All Projects (<?= count($projects) ?>)
+        </div>
 
-                <tbody>
+        <div class="table-card">
 
-                <?php $number = 1; ?>
+            <?php if (empty($projects)): ?>
 
-                <?php foreach ($projects as $project): ?>
+                <div class="empty">
+                    No portfolio projects found.
+                </div>
 
-                    <?php
-                    $projectId = (int)$project["id"];
-                    $isActive = (int)$project["status"] === 1;
-                    $imagePath = portfolioImagePath(
-                        $project["image"] ?? ""
-                    );
-                    ?>
+            <?php else: ?>
 
-                    <tr>
-                        <!-- Display sequential numbers, not database IDs -->
-                        <td><?= $number++ ?></td>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Image</th>
+                            <th>Title</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
 
-                        <td>
-                            <?php if ($imagePath !== ""): ?>
-                                <img
-                                    class="project-image"
-                                    src="<?= e($imagePath) ?>"
-                                    alt="<?= e($project["title"]) ?>"
-                                >
-                            <?php else: ?>
-                                <span class="no-image">
-                                    No image
+                    <tbody>
+
+                    <?php $number = 1; ?>
+
+                    <?php foreach ($projects as $project): ?>
+
+                        <?php
+                        $projectId = (int)$project["id"];
+                        $isActive = (int)$project["status"] === 1;
+
+                        $imagePath = portfolioImagePath(
+                            $project["image"] ?? ""
+                        );
+                        ?>
+
+                        <tr>
+                            <td><?= $number++ ?></td>
+
+                            <td>
+                                <?php if ($imagePath !== ""): ?>
+
+                                    <img
+                                        class="project-image"
+                                        src="<?= e($imagePath) ?>"
+                                        alt="<?= e($project["title"]) ?>"
+                                    >
+
+                                <?php else: ?>
+
+                                    <span class="no-image">
+                                        No image
+                                    </span>
+
+                                <?php endif; ?>
+                            </td>
+
+                            <td>
+                                <strong>
+                                    <?= e($project["title"]) ?>
+                                </strong>
+                            </td>
+
+                            <td>
+                                <span class="category">
+                                    <?= e($project["category"]) ?>
                                 </span>
-                            <?php endif; ?>
-                        </td>
+                            </td>
 
-                        <td>
-                            <strong><?= e($project["title"]) ?></strong>
-                        </td>
+                            <td>
+                                <span class="status <?= $isActive ? 'active' : 'inactive' ?>">
+                                    <?= $isActive ? "Active" : "Inactive" ?>
+                                </span>
+                            </td>
 
-                        <td>
-                            <span class="category">
-                                <?= e($project["category"]) ?>
-                            </span>
-                        </td>
+                            <td>
+                                <div class="actions">
 
-                        <td>
-                            <span class="status <?= $isActive ? "active" : "inactive" ?>">
-                                <?= $isActive ? "Active" : "Inactive" ?>
-                            </span>
-                        </td>
-
-                        <td>
-                            <div class="actions">
-
-                                <a
-                                    class="btn edit-btn"
-                                    href="edit-portfolio.php?id=<?= $projectId ?>"
-                                >
-                                    Edit
-                                </a>
-
-                                <form
-                                    class="action-form"
-                                    action="toggle-portfolio.php"
-                                    method="POST"
-                                >
-                                    <input
-                                        type="hidden"
-                                        name="id"
-                                        value="<?= $projectId ?>"
+                                    <a
+                                        class="btn edit-btn"
+                                        href="edit-portfolio.php?id=<?= $projectId ?>"
                                     >
+                                        Edit
+                                    </a>
 
-                                    <input
-                                        type="hidden"
-                                        name="csrf_token"
-                                        value="<?= e($csrfToken) ?>"
+                                    <form
+                                        class="action-form"
+                                        action="toggle-portfolio.php"
+                                        method="POST"
                                     >
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value="<?= $projectId ?>"
+                                        >
 
-                                    <button
-                                        type="submit"
-                                        class="btn toggle-btn"
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="<?= e($csrfToken) ?>"
+                                        >
+
+                                        <button
+                                            type="submit"
+                                            class="btn toggle-btn"
+                                        >
+                                            <?= $isActive ? "Deactivate" : "Activate" ?>
+                                        </button>
+                                    </form>
+
+                                    <form
+                                        class="action-form"
+                                        action="delete-portfolio.php"
+                                        method="POST"
+                                        onsubmit="return confirm('Are you sure you want to delete this project?');"
                                     >
-                                        <?= $isActive ? "Deactivate" : "Activate" ?>
-                                    </button>
-                                </form>
+                                        <input
+                                            type="hidden"
+                                            name="id"
+                                            value="<?= $projectId ?>"
+                                        >
 
-                                <form
-                                    class="action-form"
-                                    action="delete-portfolio.php"
-                                    method="POST"
-                                    onsubmit="return confirm('Are you sure you want to delete this project?');"
-                                >
-                                    <input
-                                        type="hidden"
-                                        name="id"
-                                        value="<?= $projectId ?>"
-                                    >
+                                        <input
+                                            type="hidden"
+                                            name="csrf_token"
+                                            value="<?= e($csrfToken) ?>"
+                                        >
 
-                                    <input
-                                        type="hidden"
-                                        name="csrf_token"
-                                        value="<?= e($csrfToken) ?>"
-                                    >
+                                        <button
+                                            type="submit"
+                                            class="btn delete-btn"
+                                        >
+                                            Delete
+                                        </button>
+                                    </form>
 
-                                    <button
-                                        type="submit"
-                                        class="btn delete-btn"
-                                    >
-                                        Delete
-                                    </button>
-                                </form>
+                                </div>
+                            </td>
+                        </tr>
 
-                            </div>
-                        </td>
-                    </tr>
+                    <?php endforeach; ?>
 
-                <?php endforeach; ?>
+                    </tbody>
+                </table>
 
-                </tbody>
-            </table>
+            <?php endif; ?>
 
-        <?php endif; ?>
+        </div>
+
+        <div class="footer">
+            NexaTech Admin Panel &copy; <?= date("Y") ?>
+        </div>
 
     </div>
-
 </div>
 
 </body>
